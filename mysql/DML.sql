@@ -263,7 +263,7 @@ SELECT * FROM EDPF.competence c where c.denomination like 'a%en%de%';
         
 
 
--- subconsultas
+-- subconsultas o consulta externa
 
 SELECT 
     *
@@ -277,6 +277,8 @@ WHERE
         WHERE
             c.denomination LIKE 'Especificar%');
             
+-- subconsulta anidada o consulta interna
+            
 SELECT 
     r.denomination as 'denominacion'
 FROM
@@ -288,6 +290,26 @@ FROM
         c.denomination LIKE '%a%') r
 WHERE
     r.code_competence = '220501006';
+
+-- join subconsulta externa
+SELECT 
+    *
+FROM
+    EDPF.learning_result l
+WHERE
+	l.program_code= '228106' and
+    l.version_program= '102' and
+    l.competition_code = (SELECT 
+            c.code_competence
+        FROM
+            EDPF.competence c
+        WHERE
+            c.program_code = '228106'
+                AND c.version_program = '102'
+                AND c.denomination LIKE 'Construir el sistema que cumpla con los requis%');
+
+
+
 
 -- consultas con IN
 
@@ -301,8 +323,198 @@ SELECT c.number_document FROM EDPF.customer c where c.type_document='CC' ;
 
 SELECT * FROM EDPF.customer c where c.number_document in (SELECT c.number_document FROM EDPF.customer c where c.type_document='CC') ;
 
+SELECT * FROM EDPF.training_status t where t.id_status in(SELECT distinct status_apprentice FROM EDPF.apprentice);
+
+SELECT distinct status_apprentice FROM EDPF.apprentice;
+
+SELECT * FROM EDPF.apprentice;
+
+SELECT a.number_document FROM EDPF.apprentice a WHERE a.ficha='1262154 G1-G2';
+
+SELECT * FROM EDPF.check_item ci where ci.id_item in(
+SELECT a.id_item FROM EDPF.answer_group a where a.assessment_value= 'CUMPLE CON OBSERVACIONES' 
+
+);
+
+-- some any
+
+select * from EDPF.customer c where c.number_document = SOME (SELECT a.number_document FROM EDPF.apprentice a WHERE a.ficha='1262154 G1-G2'); 
+
+select * from EDPF.customer c where c.number_document = ANY (SELECT a.number_document FROM EDPF.apprentice a WHERE a.ficha='1262154 G1-G2'); 
+
+-- EXISTS
+
+select * from EDPF.customer c where exists (select c.second_name from EDPF.customer c WHERE c.second_name is not null  ); 
+
+-- ALL
+
+select * from EDPF.type_document t where t.document >= ALL(SELECT c.type_document FROM EDPF.customer c where c.type_document='CE' and c.number_document='123'); 
+
+-- subconsulta multicolumna
+
+SELECT 
+    *
+FROM
+    EDPF.customer C
+WHERE
+    C.type_document IN (SELECT 
+            C.type_document
+        FROM
+            EDPF.customer C
+        WHERE
+            C.first_name = 'ANGÉLICA')
+        AND C.number_document IN (SELECT 
+            C.number_document
+        FROM
+            EDPF.customer C
+        WHERE
+            C.first_last_name = 'OLIVA');
+            
+            
+            
+SELECT 
+    *
+FROM
+    EDPF.customer
+WHERE
+    (type_document, number_document) =  (SELECT 
+            C.type_document, C.number_document
+         FROM EDPF.customer C WHERE
+			C.first_last_name = 'OLIVA'
+             );
 
 
+-- Subconsultas correlacionadas (correlated subqueries)
 
+SELECT 
+    *
+FROM
+    EDPF.customer c
+WHERE
+    c.number_document >= '990601369'
+        AND c.type_document = (SELECT 
+            c.type_document
+        FROM
+            EDPF.customer c
+        WHERE
+            c.number_document = '990601369'); 
+            
 
+-- JOINS
+
+-- cuidado con los productos catesianos
+
+select * from EDPF.competence;
+
+select * from EDPF.apprentice;
+select * from EDPF.competence, EDPF.apprentice;
+
+-- JOIN Cruzada
+select * from EDPF.competence, EDPF.apprentice;
+
+-- Equijoin (Join de equivalencia)
+
+SELECT 
+    c.type_document,
+    c.number_document,
+    c.first_name,
+    c.second_name,
+    c.first_last_name,
+    c.second_last_name,
+    chr.role,
+    chr.status_customer
+FROM
+    EDPF.customer c,
+    EDPF.customer_has_role chr,
+    EDPF.role r
+WHERE
+    r.id_role = chr.role
+        AND chr.type_document = c.type_document
+        AND chr.number_document = c.number_document
+        AND chr.role='INSTRUCTOR'
+;
+
+SELECT * FROM (
+SELECT 
+    c.type_document,
+    c.number_document,
+    c.first_name,
+    c.second_name,
+    c.first_last_name,
+    c.second_last_name,
+    chr.role,
+    chr.status_customer,
+    r.descripcion
+FROM
+    EDPF.customer c,
+    EDPF.customer_has_role chr,
+    EDPF.role r
+WHERE
+    r.id_role = chr.role
+        AND chr.type_document = c.type_document
+        AND chr.number_document = c.number_document
+) r where r.role='INSTRUCTOR';
+
+SELECT 
+    c.type_document,
+    c.number_document,
+    c.first_name,
+    c.second_name,
+    c.first_last_name,
+    c.second_last_name,
+    chr.role,
+    chr.status_customer
+FROM
+    EDPF.customer c  INNER join EDPF.customer_has_role chr INNER JOIN EDPF.role r
     
+    ON c.type_document = chr.type_document and c.number_document = chr.number_document and chr.role = r.id_role
+    
+WHERE
+    chr.role='INSTRUCTOR'
+;
+
+SELECT 
+    c.type_document,
+    c.number_document,
+    c.first_name,
+    c.second_name,
+    c.first_last_name,
+    c.second_last_name,
+    chr.role,
+    chr.status_customer
+FROM
+    EDPF.customer c inner join EDPF.customer_has_role chr ON c.type_document = chr.type_document and c.number_document = chr.number_document
+    INNER JOIN EDPF.role r on chr.role = r.id_role
+    
+WHERE
+    chr.role='INSTRUCTOR'
+;
+
+-- Autojoin o join reflexiva
+
+select * from EDPF.customer c1, EDPF.customer c2
+where c1.first_name='LEIDY'
+and c1.number_document= c2.number_document;
+
+select * from EDPF.customer c where c.first_name= 'LEIDY';
+
+-- Joins externas
+-- LEFF RIGHT JOIN
+
+select * from EDPF.customer c left join EDPF.apprentice a
+on c.type_document= a.type_document and c.number_document= a.number_document;
+
+-- explicito
+select * from EDPF.apprentice a inner join  EDPF.customer c
+on c.type_document= a.type_document and c.number_document= a.number_document;
+
+-- implicito
+
+-- query 1
+select * from EDPF.apprentice a , EDPF.customer c
+where c.type_document= a.type_document and c.number_document= a.number_document order by c.number_document  ;
+
+
+
+
+
