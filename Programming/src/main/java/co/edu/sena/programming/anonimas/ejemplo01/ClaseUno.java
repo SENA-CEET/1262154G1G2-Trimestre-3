@@ -1,4 +1,4 @@
-package co.edu.sena.programming.anonimas.ejemplos01;
+package co.edu.sena.programming.anonimas.ejemplo01;
 
 /**
  * Created by Enrique on 14/06/2017.
