@@ -7,4 +7,7 @@ public interface InterfaceAvion {
     public void apagar();
     public void encender();
 
+
+
+
 }
